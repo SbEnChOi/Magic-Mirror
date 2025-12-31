@@ -109,6 +109,8 @@ export const generateTryOnImage = async (
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image", 
+      // 또는 
+      //model : "gemini-3-pro-image-preview"
       contents: {
         parts: parts,
       },
