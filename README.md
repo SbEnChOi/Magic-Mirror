@@ -1,22 +1,20 @@
-테스트 하는 방법
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-npm install 
+# Run and deploy your AI Studio app
 
-npm dev run 
+This contains everything you need to run your app locally.
 
-`GEMINI_API_KEY`  @geminiService.ts 에 들어가서 Gemini_api_key 바꾸기
+View your app in AI Studio: https://ai.studio/apps/drive/1EpLiXE3ubIQLT0dA5fjZJrudope4iAzl
+
+## Run Locally
+
+**Prerequisites:**  Node.js
 
 
-
-앱 화면 
-
-<img width="2540" height="1223" alt="Image" src="https://github.com/user-attachments/assets/8ae0e2db-331c-4741-b2aa-71c044ae7803" />
-
-<img width="695" height="1077" alt="Image" src="https://github.com/user-attachments/assets/068a5f5a-6220-410c-87f7-08300b6c41fb" />
-
-<img width="839" height="1142" alt="Image" src="https://github.com/user-attachments/assets/17d1c582-bd9c-4c25-b309-c15bb8ad0af3" />
-
-<img width="2540" height="1259" alt="Image" src="https://github.com/user-attachments/assets/01bf594b-bc77-445b-9260-07c1447682f0" />
-
-test
-깃 허브 밴치 바꾸기 
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

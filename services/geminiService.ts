@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { BodyAnalysis } from "../types";
+import { BodyAnalysis, BodyMeasurements, ClothingMeasurements } from "../types";
 
 // Ensure API Key is available
 const apiKey = process.env.API_KEY || '';
@@ -62,16 +62,67 @@ export const analyzeBodyImage = async (base64Image: string): Promise<BodyAnalysi
 /**
  * Generates a "Virtual Try-On" image.
  * Uses the image model to modify the user's clothes.
- * Supports either a text description OR a reference clothing image.
+ * Now incorporates detailed measurements if provided.
  */
 export const generateTryOnImage = async (
   personImageBase64: string, 
   clothingDescription: string,
-  clothingImageBase64?: string
+  clothingImageBase64?: string,
+  size: string = 'M',
+  bodyMeasurements?: BodyMeasurements,
+  clothingMeasurements?: ClothingMeasurements,
+  clothingName?: string
 ): Promise<string> => {
   if (!apiKey) throw new Error("API Key is missing");
 
   const cleanPersonBase64 = personImageBase64.replace(/^data:image\/(png|jpeg|webp);base64,/, "");
+
+  // Construct fit description based on size
+  let fitInstruction = "";
+  switch (size) {
+    case 'S': fitInstruction = "The fit should be tight and form-fitting, corresponding to a Small size."; break;
+    case 'M': fitInstruction = "The fit should be regular and standard, corresponding to a Medium size."; break;
+    case 'L': fitInstruction = "The fit should be relaxed and slightly loose, corresponding to a Large size."; break;
+    case 'XL': fitInstruction = "The fit should be loose, baggy, and oversized, corresponding to an Extra Large size."; break;
+    default: fitInstruction = "The fit should be standard."; break;
+  }
+
+  // Inject Body Measurements into prompt if available
+  let bodyContext = "";
+  if (bodyMeasurements) {
+    const details = [];
+    if (bodyMeasurements.height) details.push(`Height: ${bodyMeasurements.height}cm`);
+    if (bodyMeasurements.weight) details.push(`Weight: ${bodyMeasurements.weight}kg`);
+    if (bodyMeasurements.shoulderWidth) details.push(`Shoulder Width: ${bodyMeasurements.shoulderWidth}cm`);
+    if (bodyMeasurements.chest) details.push(`Chest Circumference: ${bodyMeasurements.chest}cm`);
+    if (bodyMeasurements.waist) details.push(`Waist: ${bodyMeasurements.waist}cm`);
+    if (bodyMeasurements.hip) details.push(`Hip: ${bodyMeasurements.hip}cm`);
+    if (bodyMeasurements.armLength) details.push(`Arm Length: ${bodyMeasurements.armLength}cm`);
+    if (bodyMeasurements.legLength) details.push(`Leg Length: ${bodyMeasurements.legLength}cm`);
+    
+    if (details.length > 0) {
+      bodyContext = ` The person has the following specific measurements: ${details.join(', ')}. Please respect these proportions accurately.`;
+    }
+  }
+
+  // Inject Clothing Measurements into prompt if available
+  let clothingContext = "";
+  if (clothingMeasurements) {
+    const cDetails = [];
+    if (clothingMeasurements.totalLength) cDetails.push(`Total Length: ${clothingMeasurements.totalLength}cm`);
+    if (clothingMeasurements.chestWidth) cDetails.push(`Chest Width: ${clothingMeasurements.chestWidth}cm`);
+    if (clothingMeasurements.shoulderWidth) cDetails.push(`Shoulder Width: ${clothingMeasurements.shoulderWidth}cm`);
+    if (clothingMeasurements.sleeveLength) cDetails.push(`Sleeve Length: ${clothingMeasurements.sleeveLength}cm`);
+
+    if (cDetails.length > 0) {
+      clothingContext = ` The clothing item has these specific dimensions: ${cDetails.join(', ')}. Adjust the drape and fit on the body to match these real-world dimensions.`;
+    }
+  }
+
+  // Enhance description with Name if available
+  const enhancedDescription = clothingName 
+    ? `Item Name: "${clothingName}". ${clothingDescription}` 
+    : clothingDescription;
 
   try {
     const parts: any[] = [
@@ -94,23 +145,26 @@ export const generateTryOnImage = async (
       });
       parts.push({
         text: `Using the second image (clothing) as a reference, dress the person in the first image with this item.
+               Item Description: ${enhancedDescription}.
                Maintain the person's exact face, identity, pose, and background. 
-               Adapt the fit to the person's body.
+               ${fitInstruction}
+               ${bodyContext}
+               ${clothingContext}
                Make it look photorealistic.`,
       });
     } else {
       // Standard Text-based Try On
       parts.push({
-        text: `Replace the person's current outfit with: ${clothingDescription}. 
+        text: `Replace the person's current outfit with: ${enhancedDescription}. 
                Maintain the person's exact face, identity, pose, and background. 
+               ${fitInstruction}
+               ${bodyContext}
                Make it look photorealistic. High fashion photography style.`,
       });
     }
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image", 
-      // 또는 
-      //model : "gemini-3-pro-image-preview"
       contents: {
         parts: parts,
       },
